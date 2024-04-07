@@ -48,6 +48,7 @@ func (k *KatharaNetworkPlugin) CreateNetwork(req *network.CreateNetworkRequest) 
 	defer k.Unlock()
 
 	if err := detectIpTables(); err != nil {
+		log.Printf("CreateNetwork, detectIpTables error: %v", err)
 		return err
 	}
 
@@ -57,6 +58,7 @@ func (k *KatharaNetworkPlugin) CreateNetwork(req *network.CreateNetworkRequest) 
 
 	bridgeName, err := createBridge(req.NetworkID)
 	if err != nil {
+		log.Printf("CreateNetwork, createBridge error: %v", err)
 		return err
 	}
 

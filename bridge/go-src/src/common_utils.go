@@ -19,6 +19,8 @@ var (
 )
 
 func detectIpTables() error {
+	// FixMe: Temporary development workaround
+	return nil
 	useNft := false
 
 	stat, err := os.Stat(XTABLES_LOCK_PATH)
