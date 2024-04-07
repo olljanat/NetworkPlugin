@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net"
+	"strconv"
 	"sync"
 
 	"github.com/docker/docker/libnetwork/iptables"
@@ -164,18 +165,23 @@ func (k *KatharaNetworkPlugin) CreateEndpoint(req *network.CreateEndpointRequest
             continue
         }
 
-        if hostIP, exists := portmap["HostIP"]; exists {
-			log.Printf("CreateEndpoint HostIP: %v\n", hostIP)
-        }
-        if hostPort, exists := portmap["HostPort"]; exists {
-			log.Printf("CreateEndpoint HostPort: %v\n", hostPort)
-        }
-        if port, exists := portmap["Port"]; exists {
-			log.Printf("CreateEndpoint Port: %v\n", port)
-        }
-        if proto, exists := portmap["Proto"]; exists {
-			log.Printf("CreateEndpoint Proto: %v\n", proto)
-        }
+		proto, _ := portmap["Proto"]
+		hostIP, _ := portmap["HostIP"]
+        hostPort, _ := portmap["HostPort"]
+        port, _ := portmap["Port"]
+
+		if hostPort != port {
+			return nil, types.ForbiddenErrorf("Target and source ports must be same")
+		}
+		if hostIP == nil {
+			return nil, types.ForbiddenErrorf("Published IP address is required")
+		}
+
+		var publishRule = []string{"-p", strconv.FormatFloat(proto.(float64), 'f', -1, 64), "-d", hostIP.(string), "--dport", strconv.FormatFloat(hostPort.(float64), 'f', -1, 64), "-j", "ACCEPT"}
+		var iptablev4 = iptables.GetIptable(iptables.IPv4)
+		if err := iptablev4.ProgramRule(iptables.Filter, "FORWARD", iptables.Append, publishRule); err != nil {
+			return nil, err
+		}
     }
 
 	endpoint := &katharaEndpoint{
