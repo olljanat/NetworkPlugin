@@ -7,7 +7,9 @@ import (
 	"sync"
 
 	// "github.com/docker/docker/libnetwork/iptables"
-	// "github.com/docker/docker/libnetwork/netlabel"
+	"github.com/docker/docker/libnetwork/netlabel"
+	// "github.com/docker/docker/libnetwork/driverapi"
+	"github.com/docker/docker/libnetwork/options"
 	"github.com/docker/docker/libnetwork/types"
 	"github.com/docker/go-plugins-helpers/network"
 )
@@ -29,8 +31,18 @@ type katharaEndpoint struct {
 }
 
 type katharaNetwork struct {
+	ID                   string
 	bridgeName string
 	endpoints  map[string]*katharaEndpoint
+	enableIPv6           bool
+
+	// Internal fields set after ipam data parsing
+	addressIPv4        *net.IPNet
+	addressIPv6        *net.IPNet
+	defaultGatewayIPv4 string
+	defaultGatewayIPv6 string
+	dbIndex            uint64
+	dbExists           bool
 }
 
 type KatharaNetworkPlugin struct {
@@ -64,16 +76,47 @@ func (k *KatharaNetworkPlugin) CreateNetwork(req *network.CreateNetworkRequest) 
 		return types.ForbiddenErrorf("network %s exists", req.NetworkID)
 	}
 
-	bridgeName, err := createBridge(req.NetworkID)
+	// Parse the config.
+	config, err := parseNetworkOptions(req.NetworkID, req.Options)
+	if err != nil {
+		return err
+	}
+
+	// Add IP addresses/gateways to the configuration.
+	if err = config.processIPAM(req.NetworkID, req.IPv4Data, req.IPv6Data); err != nil {
+		return err
+	}
+
+	/*
+	// Validate the configuration
+	if err = config.Validate(); err != nil {
+		return err
+	}
+	*/
+
+	// FixMe: Skip this if bridge did exist
+	gatewayv4, ipnet, err := net.ParseCIDR(req.IPv4Data[0].Gateway)
+	if err != nil {
+		return err
+	}
+	log.Printf("CreateNetwork, gateway ip: %v, ipnet: %v", gatewayv4, ipnet)
+	bridgeName, err := createBridge(req.NetworkID, req.IPv4Data[0].Gateway)
 	if err != nil {
 		log.Printf("CreateNetwork, createBridge error: %v", err)
 		return err
 	}
 	log.Printf("CreateNetwork, created bridge: %v", bridgeName)
 
+	gatewayv6 := ""
+	if len(req.IPv6Data) > 0 {
+		gatewayv6 = req.IPv6Data[0].Gateway
+	}
 	katharaNetwork := &katharaNetwork{
+		ID: req.NetworkID,
 		bridgeName: bridgeName,
 		endpoints:  make(map[string]*katharaEndpoint),
+		defaultGatewayIPv4: gatewayv4.String(),
+		defaultGatewayIPv6: gatewayv6,
 	}
 
 	k.networks[req.NetworkID] = katharaNetwork
@@ -283,11 +326,19 @@ func (k *KatharaNetworkPlugin) Join(req *network.JoinRequest) (*network.JoinResp
 	k.networks[req.NetworkID].endpoints[req.EndpointID].vethInside = vethInside
 	k.networks[req.NetworkID].endpoints[req.EndpointID].vethOutside = vethOutside
 
+	/*
+	static := network.StaticRoute{
+		Destination: "0.0.0.0",
+		RouteType: 1,
+	}
+	*/
 	resp := &network.JoinResponse{
 		InterfaceName: network.InterfaceName{
 			SrcName:   vethInside,
 			DstPrefix: "eth",
 		},
+		// StaticRoutes: []static,
+		Gateway: k.networks[req.NetworkID].defaultGatewayIPv4,
 		DisableGatewayService: true,
 	}
 
@@ -363,4 +414,60 @@ func main() {
 	if err := requestHandler.ServeUnix(PLUGIN_NAME, PLUGIN_GUID); err != nil {
 		log.Fatalf("ERROR: %s init failed!", PLUGIN_NAME)
 	}
+}
+
+
+func parseNetworkOptions(id string, option options.Generic) (*katharaNetwork, error) {
+	var (
+		config = &katharaNetwork{}
+	)
+
+
+	// Process well-known labels next
+	if val, ok := option[netlabel.EnableIPv6]; ok {
+		config.enableIPv6 = val.(bool)
+	}
+
+	/*
+	exists, err := bridgeInterfaceExists(config.bridgeName)
+	if err != nil {
+		return nil, err
+	}
+
+	if !exists {
+		config.BridgeIfaceCreator = ifaceCreatedByLibnetwork
+	} else {
+		config.BridgeIfaceCreator = ifaceCreatedByUser
+	}
+	*/
+
+	config.ID = id
+	return config, nil
+}
+
+func (c *katharaNetwork) processIPAM(id string, ipamV4Data, ipamV6Data []*network.IPAMData) error {
+	if len(ipamV4Data) > 1 || len(ipamV6Data) > 1 {
+		return types.ForbiddenErrorf("bridge driver doesn't support multiple subnets")
+	}
+
+	if len(ipamV4Data) == 0 {
+		return types.InvalidParameterErrorf("bridge network %s requires ipv4 configuration", id)
+	}
+
+	/*
+	if ipamV4Data[0].Gateway != "" {
+		c.addressIPv4 = types.GetIPNetCopy(ipamV4Data[0].Gateway)
+	}
+
+
+	if len(ipamV6Data) > 0 {
+		c.addressIPv6 = ipamV6Data[0].Pool
+
+		if ipamV6Data[0].Gateway != nil {
+			c.addressIPv6 = types.GetIPNetCopy(ipamV6Data[0].Gateway)
+		}
+	}
+	*/
+
+	return nil
 }

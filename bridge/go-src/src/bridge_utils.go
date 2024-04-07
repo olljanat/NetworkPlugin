@@ -20,7 +20,7 @@ func getBridgeName(netID string) string {
 	return bridgePrefix + "-" + netID[:bridgeLen]
 }
 
-func createBridge(netID string) (string, error) {
+func createBridge(netID , ipv4 string) (string, error) {
 	bridgeName := getBridgeName(netID)
 
 	exists, err := bridgeInterfaceExists(bridgeName)
@@ -41,6 +41,14 @@ func createBridge(netID string) (string, error) {
 
 	bridge, err := netlink.LinkByName(bridgeName)
 	if err != nil {
+		return "", err
+	}
+
+	addr, err := netlink.ParseAddr(ipv4)
+	if err != nil {
+		return "", err
+	}
+	if err := netlink.AddrAdd(bridge, addr); err != nil {
 		return "", err
 	}
 
