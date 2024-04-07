@@ -3,11 +3,11 @@ package main
 import (
 	"log"
 	"net"
-	"strconv"
+	// "strconv"
 	"sync"
 
-	"github.com/docker/docker/libnetwork/iptables"
-	"github.com/docker/docker/libnetwork/netlabel"
+	// "github.com/docker/docker/libnetwork/iptables"
+	// "github.com/docker/docker/libnetwork/netlabel"
 	"github.com/docker/docker/libnetwork/types"
 	"github.com/docker/go-plugins-helpers/network"
 )
@@ -69,6 +69,7 @@ func (k *KatharaNetworkPlugin) CreateNetwork(req *network.CreateNetworkRequest) 
 		log.Printf("CreateNetwork, createBridge error: %v", err)
 		return err
 	}
+	log.Printf("CreateNetwork, created bridge: %v", bridgeName)
 
 	katharaNetwork := &katharaNetwork{
 		bridgeName: bridgeName,
@@ -143,9 +144,7 @@ func (k *KatharaNetworkPlugin) CreateEndpoint(req *network.CreateEndpointRequest
 
 	parsedMac, _ := net.ParseMAC(intfInfo.MacAddress)
 
-
-	iptables.GetIptable(iptables.IPv4)
-
+	/*
     // Extract the `com.docker.network.portmap` option
     portmapOption, ok := req.Options[netlabel.PortMap]
     if !ok {
@@ -177,12 +176,22 @@ func (k *KatharaNetworkPlugin) CreateEndpoint(req *network.CreateEndpointRequest
 			return nil, types.ForbiddenErrorf("Published IP address is required")
 		}
 
+
 		var publishRule = []string{"-p", strconv.FormatFloat(proto.(float64), 'f', -1, 64), "-d", hostIP.(string), "--dport", strconv.FormatFloat(hostPort.(float64), 'f', -1, 64), "-j", "ACCEPT"}
 		var iptablev4 = iptables.GetIptable(iptables.IPv4)
 		if err := iptablev4.ProgramRule(iptables.Filter, "FORWARD", iptables.Append, publishRule); err != nil {
 			return nil, err
 		}
+
+
+		var lbNatRule = []string{"-p", strconv.FormatFloat(proto.(float64), 'f', -1, 64), "-d", hostIP.(string), "--dport", strconv.FormatFloat(hostPort.(float64), 'f', -1, 64), "-j", "DNAT"}
+		var iptablev4 = iptables.GetIptable(iptables.IPv4)
+		if err := iptablev4.ProgramRule(iptables.Filter, "DOCKER", iptables.Append, lbNatRule); err != nil {
+			return nil, err
+		}
+
     }
+	*/
 
 	endpoint := &katharaEndpoint{
 		macAddress: parsedMac,
