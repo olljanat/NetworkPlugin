@@ -145,35 +145,6 @@ func (k *KatharaNetworkPlugin) CreateEndpoint(req *network.CreateEndpointRequest
 
 	iptables.GetIptable(iptables.IPv4)
 
-	/*
-	if opt, ok := req.Options[netlabel.ExposedPorts]; ok {
-		if ports, ok := opt.([]types.TransportPort); ok {
-			log.Printf("CreateEndpoint ExposedPorts: %v\n", ports)
-		} else {
-			return nil, types.InvalidParameterErrorf("invalid exposed ports data in connectivity configuration: %v", opt)
-		}
-	}
-	*/
-
-	/*
-	if portmaps, ok :=  req.Options[netlabel.PortMap]; ok {
-        for _, portmap := range portmaps {
-
-            if hostPort, exists := portmap["HostPort"]; exists {
-                fmt.Printf("HostPort: %v\n", hostPort)
-                break // Assuming you only need the first occurrence
-            }
-
-
-			if pb, ok := portmap.([]types.PortBinding); ok {
-				log.Printf("CreateEndpoint ExposedPorts: %v\n", pb)
-			} else {
-				return nil, types.InvalidParameterErrorf("invalid port mapping data in connectivity configuration: %v", opt)
-			}
-        }
-	}
-	*/
-
     // Extract the `com.docker.network.portmap` option
     portmapOption, ok := req.Options[netlabel.PortMap]
     if !ok {
@@ -193,10 +164,17 @@ func (k *KatharaNetworkPlugin) CreateEndpoint(req *network.CreateEndpointRequest
             continue
         }
 
+        if hostIP, exists := portmap["HostIP"]; exists {
+			log.Printf("CreateEndpoint HostIP: %v\n", hostIP)
+        }
         if hostPort, exists := portmap["HostPort"]; exists {
-            // Depending on the actual type of HostPort you may need to assert its type (e.g., string or int)
 			log.Printf("CreateEndpoint HostPort: %v\n", hostPort)
-            break // Assuming you only need the first occurrence
+        }
+        if port, exists := portmap["Port"]; exists {
+			log.Printf("CreateEndpoint Port: %v\n", port)
+        }
+        if proto, exists := portmap["Proto"]; exists {
+			log.Printf("CreateEndpoint Proto: %v\n", proto)
         }
     }
 
