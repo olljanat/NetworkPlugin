@@ -107,16 +107,18 @@ func (k *KatharaNetworkPlugin) CreateNetwork(req *network.CreateNetworkRequest) 
 	}
 	log.Printf("CreateNetwork, created bridge: %v", bridgeName)
 
+	/*
 	gatewayv6 := ""
 	if len(req.IPv6Data) > 0 {
 		gatewayv6 = req.IPv6Data[0].Gateway
 	}
+	*/
 	katharaNetwork := &katharaNetwork{
 		ID: req.NetworkID,
 		bridgeName: bridgeName,
 		endpoints:  make(map[string]*katharaEndpoint),
-		defaultGatewayIPv4: gatewayv4.String(),
-		defaultGatewayIPv6: gatewayv6,
+		// defaultGatewayIPv4: gatewayv4.String(),
+		// defaultGatewayIPv6: gatewayv6,
 	}
 
 	k.networks[req.NetworkID] = katharaNetwork
@@ -338,8 +340,8 @@ func (k *KatharaNetworkPlugin) Join(req *network.JoinRequest) (*network.JoinResp
 			DstPrefix: "eth",
 		},
 		// StaticRoutes: []static,
-		Gateway: k.networks[req.NetworkID].defaultGatewayIPv4,
-		DisableGatewayService: true,
+		// Gateway: k.networks[req.NetworkID].defaultGatewayIPv4,
+		// DisableGatewayService: true,
 	}
 
 	return resp, nil

@@ -44,6 +44,7 @@ func createBridge(netID , ipv4 string) (string, error) {
 		return "", err
 	}
 
+	/*
 	addr, err := netlink.ParseAddr(ipv4)
 	if err != nil {
 		return "", err
@@ -51,6 +52,7 @@ func createBridge(netID , ipv4 string) (string, error) {
 	if err := netlink.AddrAdd(bridge, addr); err != nil {
 		return "", err
 	}
+	*/
 
 	/*
 	var bridgeRule = []string{"-i", bridgeName, "-o", bridgeName, "-j", "ACCEPT"}
