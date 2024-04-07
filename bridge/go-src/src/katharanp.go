@@ -5,6 +5,8 @@ import (
 	"net"
 	"sync"
 
+	"github.com/docker/docker/libnetwork/iptables"
+	"github.com/docker/docker/libnetwork/netlabel"
 	"github.com/docker/docker/libnetwork/types"
 	"github.com/docker/go-plugins-helpers/network"
 )
@@ -13,6 +15,11 @@ var (
 	PLUGIN_NAME = "katharanp"
 	PLUGIN_GUID = 0
 )
+
+// endpointConfiguration represents the user specified configuration for the sandbox endpoint
+type endpointConfiguration struct {
+	MacAddress net.HardwareAddr
+}
 
 type katharaEndpoint struct {
 	macAddress  net.HardwareAddr
@@ -134,6 +141,64 @@ func (k *KatharaNetworkPlugin) CreateEndpoint(req *network.CreateEndpointRequest
 	}
 
 	parsedMac, _ := net.ParseMAC(intfInfo.MacAddress)
+
+
+	iptables.GetIptable(iptables.IPv4)
+
+	/*
+	if opt, ok := req.Options[netlabel.ExposedPorts]; ok {
+		if ports, ok := opt.([]types.TransportPort); ok {
+			log.Printf("CreateEndpoint ExposedPorts: %v\n", ports)
+		} else {
+			return nil, types.InvalidParameterErrorf("invalid exposed ports data in connectivity configuration: %v", opt)
+		}
+	}
+	*/
+
+	/*
+	if portmaps, ok :=  req.Options[netlabel.PortMap]; ok {
+        for _, portmap := range portmaps {
+
+            if hostPort, exists := portmap["HostPort"]; exists {
+                fmt.Printf("HostPort: %v\n", hostPort)
+                break // Assuming you only need the first occurrence
+            }
+
+
+			if pb, ok := portmap.([]types.PortBinding); ok {
+				log.Printf("CreateEndpoint ExposedPorts: %v\n", pb)
+			} else {
+				return nil, types.InvalidParameterErrorf("invalid port mapping data in connectivity configuration: %v", opt)
+			}
+        }
+	}
+	*/
+
+    // Extract the `com.docker.network.portmap` option
+    portmapOption, ok := req.Options[netlabel.PortMap]
+    if !ok {
+		log.Printf("CreateEndpoint , Portmap option not found\n")
+    }
+
+    // Assert the type to a slice of maps
+    portmaps, ok := portmapOption.([]interface{})
+    if !ok {
+        log.Println("CreateEndpoint, Invalid type for portmaps")
+    }
+
+    for _, portmapInterface := range portmaps {
+        portmap, ok := portmapInterface.(map[string]interface{})
+        if !ok {
+            log.Println("CreateEndpoint, Invalid type for portmap entry")
+            continue
+        }
+
+        if hostPort, exists := portmap["HostPort"]; exists {
+            // Depending on the actual type of HostPort you may need to assert its type (e.g., string or int)
+			log.Printf("CreateEndpoint HostPort: %v\n", hostPort)
+            break // Assuming you only need the first occurrence
+        }
+    }
 
 	endpoint := &katharaEndpoint{
 		macAddress: parsedMac,
