@@ -328,20 +328,11 @@ func (k *KatharaNetworkPlugin) Join(req *network.JoinRequest) (*network.JoinResp
 	k.networks[req.NetworkID].endpoints[req.EndpointID].vethInside = vethInside
 	k.networks[req.NetworkID].endpoints[req.EndpointID].vethOutside = vethOutside
 
-	/*
-	static := network.StaticRoute{
-		Destination: "0.0.0.0",
-		RouteType: 1,
-	}
-	*/
 	resp := &network.JoinResponse{
 		InterfaceName: network.InterfaceName{
 			SrcName:   vethInside,
 			DstPrefix: "eth",
 		},
-		// StaticRoutes: []static,
-		// Gateway: k.networks[req.NetworkID].defaultGatewayIPv4,
-		// DisableGatewayService: true,
 	}
 
 	return resp, nil
