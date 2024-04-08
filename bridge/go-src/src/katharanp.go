@@ -87,13 +87,6 @@ func (k *KatharaNetworkPlugin) CreateNetwork(req *network.CreateNetworkRequest) 
 		return err
 	}
 
-	/*
-	// Validate the configuration
-	if err = config.Validate(); err != nil {
-		return err
-	}
-	*/
-
 	// FixMe: Skip this if bridge did exist
 	gatewayv4, ipnet, err := net.ParseCIDR(req.IPv4Data[0].Gateway)
 	if err != nil {

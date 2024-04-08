@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	// "github.com/docker/docker/libnetwork/iptables"
+	"github.com/docker/docker/libnetwork/iptables"
 	"github.com/docker/docker/libnetwork/ns"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netlink/nl"
@@ -52,8 +52,7 @@ func createBridge(netID , ipv4 string) (string, error) {
 		return "", err
 	}
 
-	/*
-	var bridgeRule = []string{"-i", bridgeName, "-o", bridgeName, "-j", "ACCEPT"}
+	var bridgeRule = []string{"-i", "eth0", "-o", bridgeName, "-j", "ACCEPT"}
 
 	// Install rule in IPv4
 	var iptablev4 = iptables.GetIptable(iptables.IPv4)
@@ -62,6 +61,7 @@ func createBridge(netID , ipv4 string) (string, error) {
 	}
 
 	// Install rule in IPv6
+	/*
 	var iptablev6 = iptables.GetIptable(iptables.IPv6)
 	if err := iptablev6.ProgramRule(iptables.Filter, "FORWARD", iptables.Append, bridgeRule); err != nil {
 		return "", err
